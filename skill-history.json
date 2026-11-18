@@ -1,0 +1,86 @@
+{
+  "checking-commitments": {
+    "history_url": "https://github.com/jamesgray-ai/family-office-registry-sample/commits/main/.claude/skills/checking-commitments",
+    "changes": [
+      {
+        "date": "2026-11-18",
+        "title": "First version saved to GitHub",
+        "why": "",
+        "author": "jamesgray007",
+        "pr": null,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/commit/616b004ae719afa711f6e388adba263fb5e907bc"
+      }
+    ]
+  },
+  "family-office-house-style": {
+    "history_url": "https://github.com/jamesgray-ai/family-office-registry-sample/commits/main/.claude/skills/family-office-house-style",
+    "changes": [
+      {
+        "date": "2026-11-18",
+        "title": "Explain investment terms on first use",
+        "why": "After the Q3 family report, two family members asked what TVPI and DPI meant. Terms the investment team uses every day are not plain English to the family.",
+        "author": "jamesgray007",
+        "pr": 4,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/pull/4"
+      },
+      {
+        "date": "2026-11-18",
+        "title": "First version saved to GitHub",
+        "why": "",
+        "author": "jamesgray007",
+        "pr": null,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/commit/616b004ae719afa711f6e388adba263fb5e907bc"
+      }
+    ]
+  },
+  "reading-capital-call-notices": {
+    "history_url": "https://github.com/jamesgray-ai/family-office-registry-sample/commits/main/.claude/skills/reading-capital-call-notices",
+    "changes": [
+      {
+        "date": "2026-11-18",
+        "title": "Verify wire changes only through contacts on file",
+        "why": "The quarterly security review flagged a known fraud pattern: a fake notice changes the bank details and prints a phone number to \"confirm\" them. The skill said to verify by call-back but not which number to call.",
+        "author": "jamesgray007",
+        "pr": 3,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/pull/3"
+      },
+      {
+        "date": "2026-11-18",
+        "title": "Flag calls due in fewer than 5 business days",
+        "why": "A Fund IV call arrived with four business days to pay and sat in the queue behind routine notices. The office's rule is that short-notice calls go to the Controller first.",
+        "author": "jamesgray007",
+        "pr": 2,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/pull/2"
+      },
+      {
+        "date": "2026-11-18",
+        "title": "Record netted distributions separately",
+        "why": "Two Fund II notices this quarter netted a distribution against the call. The skill recorded only the net amount, so the commitment check counted the call as $150,000 smaller than it was.",
+        "author": "jamesgray007",
+        "pr": 1,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/pull/1"
+      },
+      {
+        "date": "2026-11-18",
+        "title": "First version saved to GitHub",
+        "why": "",
+        "author": "jamesgray007",
+        "pr": null,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/commit/616b004ae719afa711f6e388adba263fb5e907bc"
+      }
+    ]
+  },
+  "capital-call-preparer": {
+    "history_url": "https://github.com/jamesgray-ai/family-office-registry-sample/commits/main/.claude/agents/capital-call-preparer.md",
+    "changes": [
+      {
+        "date": "2026-11-18",
+        "title": "First version saved to GitHub",
+        "why": "",
+        "author": "jamesgray007",
+        "pr": null,
+        "url": "https://github.com/jamesgray-ai/family-office-registry-sample/commit/616b004ae719afa711f6e388adba263fb5e907bc"
+      }
+    ]
+  }
+}

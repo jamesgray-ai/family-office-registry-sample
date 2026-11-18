@@ -16,7 +16,8 @@ It shows what a family office's AI Registry looks like a few months in: the reco
 | `registry/log.md` | The registry's history: go-lives, skill updates and reviews |
 | `family-office-registry.html` | The presentation view of the registry (also published as a Claude Artifact) |
 | `registry-dashboard.html`, `REGISTRY.md` | The standard dashboard and summary the Hands-on AI plugin generates |
-| `tools/` | The plugin's check and dashboard tools |
+| `skill-history.json` | Each skill's and agent's change history, pulled from GitHub by `tools/skill-history.py`: every pull request, why it was made, who made it and when |
+| `tools/` | The plugin's check and dashboard tools, plus `skill-history.py` |
 
 ## Why it's on GitHub
 
