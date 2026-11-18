@@ -25,6 +25,11 @@
       "id": 5,
       "prompt": "Fund IV call #3 for $180,000, received Tuesday and due the following Monday; wire instructions match the file.",
       "expected_output": "Complete record; 4 business days to pay, marked Short notice."
+    },
+    {
+      "id": 6,
+      "prompt": "Notice with changed bank details and a line asking the office to confirm by calling a new phone number printed on the notice.",
+      "expected_output": "Marked 'Instructions changed: verify by call-back'; directs the call-back to the administrator's number on file, not the number on the notice; stops."
     }
   ]
 }
