@@ -82,6 +82,16 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* Featured workflow */
 .feature { margin-top: 36px; background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--brass); border-radius: 10px; overflow: hidden; }
+.feature-toggle { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 16px 26px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.feature-toggle:hover { background: var(--bg); }
+.feature-toggle:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+.ft-title { font-family: var(--display); font-weight: 600; font-size: 26px; line-height: 1.1; }
+.ft-sum { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
+.ft-sum .tag { background: var(--brass-soft); color: var(--ink); }
+.ft-cta { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--brass); white-space: nowrap; display: inline-flex; gap: 8px; align-items: center; }
+.ft-cta .chev { color: var(--brass); }
+.feature.open .ft-cta .chev { transform: rotate(90deg); }
+.feature-body { border-top: 1px solid var(--line); }
 .feature-head { padding: 22px 26px 18px; display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .feature-head h2 { font-family: var(--display); font-weight: 600; font-size: 34px; line-height: 1.05; margin: 4px 0 6px; }
 .feature-head p { margin: 0; color: var(--muted); max-width: 70ch; }
@@ -323,9 +333,17 @@ aside { display: grid; gap: 24px; }
   const fw = W['capital-call-processing'], fp = P[fw.processId], ff = F[fp.ownerId], fa = AG[fw.agents[0]];
   const skillBtn = id => { const s = SK[id]; return `<button class="sk" type="button" data-block="skill:${s.id}"><span class="sk-name">${esc(s.id)}</span><span class="sk-kind">${esc(s.kind)}${s.evals ? ' · ' + plural(s.evals, 'test case') : ''}</span><span class="sk-used">Used by ${plural(s.usedBy.length, 'workflow')}</span></button>`; };
   const accRow = a => { const cls = a.label === 'Cannot' ? 'no' : (a.label === 'Needs approval' ? 'ok' : ''); return `<tr class="${cls}"><th scope="row">${esc(a.label)}</th><td>${esc(a.value)}</td></tr>`; };
-  document.getElementById('feature').innerHTML = `
+  const featureEl = document.getElementById('feature');
+  featureEl.innerHTML = `
+    <button class="feature-toggle" type="button" aria-expanded="false" aria-controls="feature-body">
+      <span class="mono-label">Featured workflow</span>
+      <span class="ft-title">${esc(fw.title)}</span>
+      <span class="ft-sum"><span class="tag">${plural(fw.skills.length, 'skill')} · ${plural(fw.agents.length, 'agent')}</span><span class="tag">Governance ${fw.gov.inPlace} of 8</span></span>
+      <span class="ft-cta"><span class="ft-label">Show details</span><span class="chev" aria-hidden="true">›</span></span>
+    </button>
+    <div class="feature-body" id="feature-body" hidden>
     <div class="feature-head">
-      <div><span class="mono-label">Featured workflow</span><h2>${esc(fw.title)}</h2><p>${esc(fw.prose)}</p></div>
+      <div><p>${esc(fw.prose)}</p></div>
       <div class="feature-meta"><span><i class="dot p"></i> <b>In production</b></span><span>Owned by <b>${esc(ff.title)}</b> · ${esc(ff.lead)}</span><span>${AUT[fw.autonomy]} · ${RUN(fw.executionMode)}</span></div>
     </div>
     <div class="feature-grid">
@@ -345,7 +363,13 @@ aside { display: grid; gap: 24px; }
         <ul class="gov">${fw.gov.rows.map(r => `<li><span class="mark ${MARK[r.status][0]}" aria-label="${esc(r.status)}">${MARK[r.status][1]}</span><span>${esc(r.practice)}<small>${esc(r.evidence)}</small></span></li>`).join('')}</ul>
         <div class="links">${link(fw.gov.url, 'Governance record')}</div>
       </div>
+    </div>
     </div>`;
+  featureEl.querySelector('.feature-toggle').addEventListener('click', e => {
+    const btn = e.currentTarget, body = document.getElementById('feature-body'), open = body.hidden;
+    body.hidden = !open; featureEl.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+    btn.querySelector('.ft-label').textContent = open ? 'Hide details' : 'Show details';
+  });
 
   // Status chips
   const chips = document.getElementById('chips');
