@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Registry Dashboard</title>
+<style>
+/* ── Design tokens — re-skin your dashboard here ─────────────── */
+:root { --accent:#4f6bed; --bg:#ffffff; --fg:#1a1a2e; --muted:#6b7280;
+        --card:#f6f7fb; --ok:#2e7d32; --warn:#b45309; --err:#b3261e; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#111318; --fg:#e7e9ee; --muted:#9aa1ad; --card:#1b1e27; } }
+
+/* ── base ─────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+a { color: var(--accent); }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.hdr {
+  padding: 16px 24px; border-bottom: 1px solid var(--card);
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+header.hdr h1 { font-size: 16px; margin: 0; }
+header.hdr .tag { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 20px 24px 80px; }
+
+/* business band */
+.biz-band {
+  border: 1px solid var(--card); background: var(--card); border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 20px;
+}
+.biz-band .biz-kicker { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.biz-band h2 { margin: 2px 0 4px; font-size: 20px; }
+.biz-band p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+.biz-band .status { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+/* status-distribution summary strip */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 24px; }
+.kpi { border: 1px solid var(--card); background: var(--card); border-radius: 10px; padding: 10px 14px; }
+.kpi b { display: block; font-size: 22px; font-weight: 700; }
+.kpi span { font-size: 11px; color: var(--muted); }
+
+/* status dot */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex: none; }
+.dot.in-production { background: var(--ok); }
+.dot.under-development { background: var(--warn); }
+.dot.backlog { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.dot.retired { background: var(--muted); }
+.dot.none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
+
+/* value-chain spine */
+.lane { margin-bottom: 26px; }
+.lane-hd { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.lane-hd h3 { margin: 0; font-size: 17px; }
+.lane-hd .lane-kicker { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.lane-hd .lane-status { font-size: 11px; color: var(--muted); }
+
+.spine { border: 1px solid var(--card); border-radius: 10px; overflow: hidden; }
+.prow { padding: 10px 16px; border-bottom: 1px solid var(--card); }
+.prow:last-child { border-bottom: 0; }
+.prow .p-title { font-weight: 700; font-size: 13.5px; text-align: left; }
+.prow .p-title:hover { text-decoration: underline; }
+.prow .p-owner { font-size: 11.5px; color: var(--muted); margin-left: 6px; }
+.wfl { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.wfr {
+  display: flex; align-items: center; gap: 8px; text-align: left; width: 100%;
+  padding: 5px 8px; margin: 0 -8px; border-radius: 6px; font-size: 12.5px;
+}
+.wfr:hover { background: var(--card); }
+.wfr.overdue { color: var(--warn); }
+.wfr .wf-title { flex: 1; }
+.wfr .badge {
+  font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: .04em;
+  padding: 1.5px 6px; border-radius: 4px; background: var(--card); color: var(--muted);
+}
+.prow .none-yet { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 6px; }
+
+.empty-state {
+  border: 1px dashed var(--card); border-radius: 10px; padding: 40px 20px;
+  text-align: center; color: var(--muted); font-size: 13.5px;
+}
+
+/* drill-in panel */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 94vw); z-index: 51;
+  background: var(--bg); border-left: 1px solid var(--card); box-shadow: -12px 0 32px rgba(0,0,0,.15);
+  transform: translateX(102%); transition: transform .18s ease-out;
+  display: flex; flex-direction: column;
+}
+.panel.open { transform: none; }
+.panel-hd { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--card); }
+.panel-hd .p-type { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.panel-x { margin-left: auto; font-size: 18px; color: var(--muted); padding: 2px 8px; border-radius: 6px; }
+.panel-x:hover { background: var(--card); color: var(--fg); }
+.panel-bd { overflow-y: auto; padding: 18px 20px 40px; }
+.panel-bd h2 { margin: 2px 0 4px; font-size: 20px; }
+.p-desc { color: var(--muted); font-size: 13.5px; margin: 8px 0 14px; }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-bottom: 16px; }
+.meta .m { background: var(--card); border-radius: 8px; padding: 7px 10px; }
+.meta .m i { display: block; font-style: normal; font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.meta .m b { font-size: 12.5px; font-weight: 600; }
+.meta .m.wide { grid-column: 1 / -1; }
+.meta .m.overdue b { color: var(--warn); }
+.p-sec { margin: 16px 0; }
+.p-sec > i { display: block; font-style: normal; font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin-bottom: 7px; }
+.p-sec ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.p-sec li button, .p-sec li a { font-size: 13px; display: block; }
+.empty-note { color: var(--muted); font-size: 12.5px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <span class="tag">AI Registry</span>
+  <h1>Dashboard</h1>
+</header>
+
+<main>
+  <div id="root"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="panel-hd">
+    <span class="p-type" id="panel-type"></span>
+    <button class="panel-x" id="panel-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="panel-bd">
+    <h2 id="panel-title"></h2>
+    <p class="p-desc" id="panel-desc"></p>
+    <div class="meta" id="panel-meta"></div>
+    <div id="panel-extra"></div>
+  </div>
+</aside>
+
+<!-- Composers replace ONLY this element's content. Shape: data-island.schema.json, shipped beside this template; derivation rules: the indexing-registry skill's tier-2-island.md. Escape every < in the JSON as \u003c. -->
+<script type="application/json" id="data">{"business":{"id":"sample-family-office","title":"Sample Family Office","description":"A single-family office that manages one family's investments, finances, taxes, household and governance. A sample registry for illustration.","status":"active","nodePath":"registry/businesses/sample-family-office.md"},"lobs":[{"id":"investment-management","title":"Investment Management","description":"Growing and protecting the family's wealth across public, private and real assets.","status":"active","processes":["investment-monitoring-and-reporting","manager-due-diligence","capital-calls-and-distributions"],"nodePath":"registry/lines-of-business/investment-management.md"},{"id":"financial-administration","title":"Financial Administration","description":"Running the family's books, bills and cash across every entity.","status":"active","processes":["bill-pay-and-expense-management","accounting-and-consolidated-reporting","cash-and-liquidity-management"],"nodePath":"registry/lines-of-business/financial-administration.md"},{"id":"tax-and-estate-planning","title":"Tax and Estate Planning","description":"Keeping the family compliant and its trusts and entities in good standing.","status":"active","processes":["tax-preparation-and-compliance","estate-and-entity-administration"],"nodePath":"registry/lines-of-business/tax-and-estate-planning.md"},{"id":"family-services","title":"Family Services","description":"Supporting the family's day-to-day life, homes and security.","status":"active","processes":["family-requests-and-concierge","household-and-staff-administration","insurance-and-risk-management","cybersecurity-and-privacy"],"nodePath":"registry/lines-of-business/family-services.md"},{"id":"family-governance-and-philanthropy","title":"Family Governance and Philanthropy","description":"Helping the family make decisions together, give well and prepare the next generation.","status":"active","processes":["family-meetings-and-governance","philanthropy-and-grantmaking","next-generation-education"],"nodePath":"registry/lines-of-business/family-governance-and-philanthropy.md"}],"functions":[{"id":"executive","title":"Executive","description":"Owns family governance, philanthropy and the next generation's education.","lead":"Head of the family office","owns":["family-meetings-and-governance","next-generation-education","philanthropy-and-grantmaking"],"nodePath":"registry/functions/executive.md"},{"id":"family-services","title":"Family Services","description":"Owns the household, staff and day-to-day requests from family members.","lead":"Director of Family Services","owns":["family-requests-and-concierge","household-and-staff-administration"],"nodePath":"registry/functions/family-services.md"},{"id":"finance","title":"Finance","description":"Owns accounting, bill pay, cash and the money movements behind every investment.","lead":"Controller","owns":["accounting-and-consolidated-reporting","bill-pay-and-expense-management","capital-calls-and-distributions","cash-and-liquidity-management"],"nodePath":"registry/functions/finance.md"},{"id":"investments","title":"Investments","description":"Owns how the family's portfolio is monitored, reported and added to.","lead":"Chief Investment Officer","owns":["investment-monitoring-and-reporting","manager-due-diligence"],"nodePath":"registry/functions/investments.md"},{"id":"operations-and-risk","title":"Operations and Risk","description":"Owns insurance, cybersecurity and the protection of the family's information.","lead":"Chief Operating Officer","owns":["cybersecurity-and-privacy","insurance-and-risk-management"],"nodePath":"registry/functions/operations-and-risk.md"},{"id":"tax-and-legal","title":"Tax and Legal","description":"Owns tax compliance and the administration of trusts and entities.","lead":"General Counsel","owns":["estate-and-entity-administration","tax-preparation-and-compliance"],"nodePath":"registry/functions/tax-and-legal.md"}],"processes":[{"id":"investment-monitoring-and-reporting","title":"Investment Monitoring and Reporting","description":"Tracking the portfolio and reporting results to the family.","ownerId":"investments","lobId":"investment-management","workflows":["quarterly-family-investment-report","manager-letter-summaries","performance-variance-alerts","investment-committee-packet"],"nodePath":"registry/processes/investment-monitoring-and-reporting.md"},{"id":"manager-due-diligence","title":"Manager Due Diligence","description":"Evaluating new managers and investments before the family commits capital.","ownerId":"investments","lobId":"investment-management","workflows":["ddq-review","investment-memo-drafting","annual-manager-review"],"nodePath":"registry/processes/manager-due-diligence.md"},{"id":"capital-calls-and-distributions","title":"Capital Calls and Distributions","description":"Funding private investment commitments and recording what comes back.","ownerId":"finance","lobId":"investment-management","workflows":["capital-call-processing","distribution-tracking","unfunded-commitment-forecast"],"nodePath":"registry/processes/capital-calls-and-distributions.md"},{"id":"bill-pay-and-expense-management","title":"Bill Pay and Expense Management","description":"Paying the family's bills accurately and on time, to the right entity.","ownerId":"finance","lobId":"financial-administration","workflows":["invoice-intake-and-routing","expense-coding-and-reconciliation","recurring-payment-review"],"nodePath":"registry/processes/bill-pay-and-expense-management.md"},{"id":"accounting-and-consolidated-reporting","title":"Accounting and Consolidated Reporting","description":"Closing the books and showing the family one consolidated picture.","ownerId":"finance","lobId":"financial-administration","workflows":["monthly-close-checklist","consolidated-net-worth-statement","entity-financial-statements"],"nodePath":"registry/processes/accounting-and-consolidated-reporting.md"},{"id":"cash-and-liquidity-management","title":"Cash and Liquidity Management","description":"Knowing where the family's cash is and what it will need.","ownerId":"finance","lobId":"financial-administration","workflows":["daily-cash-position","liquidity-forecast"],"nodePath":"registry/processes/cash-and-liquidity-management.md"},{"id":"tax-preparation-and-compliance","title":"Tax Preparation and Compliance","description":"Getting every return filed accurately and on time.","ownerId":"tax-and-legal","lobId":"tax-and-estate-planning","workflows":["k-1-tracking-and-collection","tax-document-organizer","estimated-tax-payment-reminders"],"nodePath":"registry/processes/tax-preparation-and-compliance.md"},{"id":"estate-and-entity-administration","title":"Estate and Entity Administration","description":"Keeping trusts and entities current and understood.","ownerId":"tax-and-legal","lobId":"tax-and-estate-planning","workflows":["entity-compliance-calendar","trust-document-summaries","estate-plan-review-preparation"],"nodePath":"registry/processes/estate-and-entity-administration.md"},{"id":"family-requests-and-concierge","title":"Family Requests and Concierge","description":"Handling what family members ask the office to do.","ownerId":"family-services","lobId":"family-services","workflows":["family-request-intake","travel-planning-briefs","event-planning"],"nodePath":"registry/processes/family-requests-and-concierge.md"},{"id":"household-and-staff-administration","title":"Household and Staff Administration","description":"Running the family's homes and household staff.","ownerId":"family-services","lobId":"family-services","workflows":["household-staff-payroll-review","property-maintenance-scheduling","household-vendor-and-contract-tracking"],"nodePath":"registry/processes/household-and-staff-administration.md"},{"id":"insurance-and-risk-management","title":"Insurance and Risk Management","description":"Keeping the family properly insured.","ownerId":"operations-and-risk","lobId":"family-services","workflows":["insurance-policy-inventory","insurance-renewal-preparation","claims-tracking"],"nodePath":"registry/processes/insurance-and-risk-management.md"},{"id":"cybersecurity-and-privacy","title":"Cybersecurity and Privacy","description":"Protecting the family's accounts, devices and information.","ownerId":"operations-and-risk","lobId":"family-services","workflows":["payment-change-verification","family-device-and-account-review","access-review"],"nodePath":"registry/processes/cybersecurity-and-privacy.md"},{"id":"family-meetings-and-governance","title":"Family Meetings and Governance","description":"Preparing for and following through on family meetings.","ownerId":"executive","lobId":"family-governance-and-philanthropy","workflows":["family-meeting-briefing-packet","meeting-minutes-and-action-tracking","family-policy-updates"],"nodePath":"registry/processes/family-meetings-and-governance.md"},{"id":"philanthropy-and-grantmaking","title":"Philanthropy and Grantmaking","description":"Running the family's giving and its foundation.","ownerId":"executive","lobId":"family-governance-and-philanthropy","workflows":["grant-request-screening","grantee-impact-reports","foundation-compliance-calendar"],"nodePath":"registry/processes/philanthropy-and-grantmaking.md"},{"id":"next-generation-education","title":"Next-Generation Education","description":"Preparing the next generation to steward the family's wealth.","ownerId":"executive","lobId":"family-governance-and-philanthropy","workflows":["next-gen-learning-plans","financial-literacy-briefings"],"nodePath":"registry/processes/next-generation-education.md"}],"workflows":[{"id":"quarterly-family-investment-report","title":"Quarterly Family Investment Report","description":"Assembles the quarterly investment report from custodian statements and manager letters in the family's standard format.","status":"in-production","executionMode":"augmented","autonomy":"deterministic","trigger":"Quarterly, 15 business days after quarter end","staleAfter":"2027-02-15","processId":"investment-monitoring-and-reporting","lobId":"investment-management","state":"Runs outside the framework","skills":[".claude/skills/family-office-house-style/SKILL.md"],"agents":[],"nodePath":"registry/workflows/quarterly-family-investment-report.md"},{"id":"manager-letter-summaries","title":"Manager Letter Summaries","description":"Summarizes each manager's quarterly letter into one page of changes, risks and actions.","status":"in-production","executionMode":"augmented","autonomy":"guided","trigger":"When a manager letter arrives","staleAfter":"2027-02-15","processId":"investment-monitoring-and-reporting","lobId":"investment-management","state":"Runs outside the framework","skills":[".claude/skills/family-office-house-style/SKILL.md"],"agents":[],"nodePath":"registry/workflows/manager-letter-summaries.md"},{"id":"performance-variance-alerts","title":"Performance Variance Alerts","description":"Flags managers or positions that moved outside expected ranges since the last report.","status":"under-development","executionMode":"automated","autonomy":"guided","trigger":"Weekly, Monday morning","processId":"investment-monitoring-and-reporting","lobId":"investment-management","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/performance-variance-alerts.md"},{"id":"investment-committee-packet","title":"Investment Committee Packet","description":"Prepares the briefing packet for each investment committee meeting.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Two weeks before each investment committee meeting","processId":"investment-monitoring-and-reporting","lobId":"investment-management","state":"Requirements needed","skills":[".claude/skills/family-office-house-style/SKILL.md"],"agents":[],"nodePath":"registry/workflows/investment-committee-packet.md"},{"id":"ddq-review","title":"DDQ Review","description":"Reviews a manager's due diligence questionnaire against the office's criteria and lists the gaps to follow up.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"When a completed DDQ is received","processId":"manager-due-diligence","lobId":"investment-management","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/ddq-review.md"},{"id":"investment-memo-drafting","title":"Investment Memo Drafting","description":"Drafts the investment memo from the deal materials and the office's memo template.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"When a new opportunity enters review","processId":"manager-due-diligence","lobId":"investment-management","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/investment-memo-drafting.md"},{"id":"annual-manager-review","title":"Annual Manager Review","description":"Prepares each manager's annual review from a year of letters, performance and meeting notes.","status":"backlog","executionMode":"augmented","autonomy":"deterministic","trigger":"Annually, for each manager","processId":"manager-due-diligence","lobId":"investment-management","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/annual-manager-review.md"},{"id":"capital-call-processing","title":"Capital Call Processing","description":"Reads each capital call notice, checks it against the commitment, and prepares the payment for approval.","status":"in-production","executionMode":"augmented","autonomy":"guided","trigger":"When a capital call notice arrives","staleAfter":"2027-02-15","processId":"capital-calls-and-distributions","lobId":"investment-management","state":"Runs outside the framework","skills":[".claude/skills/reading-capital-call-notices/SKILL.md",".claude/skills/checking-commitments/SKILL.md",".claude/skills/family-office-house-style/SKILL.md"],"agents":[".claude/agents/capital-call-preparer.md"],"nodePath":"registry/workflows/capital-call-processing.md"},{"id":"distribution-tracking","title":"Distribution Tracking","description":"Records each distribution against its commitment and updates the unfunded commitment schedule.","status":"under-development","executionMode":"automated","autonomy":"deterministic","trigger":"When a distribution notice arrives","processId":"capital-calls-and-distributions","lobId":"investment-management","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/distribution-tracking.md"},{"id":"unfunded-commitment-forecast","title":"Unfunded Commitment Forecast","description":"Forecasts upcoming capital calls from the unfunded commitment schedule and fund pacing.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Quarterly","processId":"capital-calls-and-distributions","lobId":"investment-management","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/unfunded-commitment-forecast.md"},{"id":"invoice-intake-and-routing","title":"Invoice Intake and Routing","description":"Sorts incoming invoices, codes each to the right entity and routes it for approval.","status":"in-production","executionMode":"automated","autonomy":"guided","trigger":"When an invoice arrives in the bills inbox","staleAfter":"2027-02-15","processId":"bill-pay-and-expense-management","lobId":"financial-administration","state":"Runs outside the framework","skills":[],"agents":[],"nodePath":"registry/workflows/invoice-intake-and-routing.md"},{"id":"expense-coding-and-reconciliation","title":"Expense Coding and Reconciliation","description":"Reconciles card and bank activity against coded expenses each week.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"Weekly","processId":"bill-pay-and-expense-management","lobId":"financial-administration","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/expense-coding-and-reconciliation.md"},{"id":"recurring-payment-review","title":"Recurring Payment Review","description":"Reviews recurring payments and subscriptions for changes, duplicates and ones that should stop.","status":"backlog","executionMode":"augmented","autonomy":"deterministic","trigger":"Monthly","processId":"bill-pay-and-expense-management","lobId":"financial-administration","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/recurring-payment-review.md"},{"id":"monthly-close-checklist","title":"Monthly Close Checklist","description":"Runs the month-end close checklist and tracks each step to done across entities.","status":"under-development","executionMode":"augmented","autonomy":"deterministic","trigger":"Monthly, first five business days","processId":"accounting-and-consolidated-reporting","lobId":"financial-administration","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/monthly-close-checklist.md"},{"id":"consolidated-net-worth-statement","title":"Consolidated Net Worth Statement","description":"Consolidates balances across entities, custodians and private holdings into the family's net worth statement.","status":"under-development","executionMode":"augmented","autonomy":"deterministic","trigger":"Monthly","processId":"accounting-and-consolidated-reporting","lobId":"financial-administration","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/consolidated-net-worth-statement.md"},{"id":"entity-financial-statements","title":"Entity Financial Statements","description":"Prepares financial statements for each family entity from the closed books.","status":"backlog","executionMode":"augmented","autonomy":"deterministic","trigger":"Quarterly","processId":"accounting-and-consolidated-reporting","lobId":"financial-administration","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/entity-financial-statements.md"},{"id":"daily-cash-position","title":"Daily Cash Position","description":"Pulls balances across all accounts into one daily cash summary.","status":"in-production","executionMode":"automated","autonomy":"deterministic","trigger":"Every business day, 8am","staleAfter":"2027-02-15","processId":"cash-and-liquidity-management","lobId":"financial-administration","state":"Runs outside the framework","skills":[],"agents":[],"nodePath":"registry/workflows/daily-cash-position.md"},{"id":"liquidity-forecast","title":"Liquidity Forecast","description":"Forecasts cash needs from bills, capital calls, taxes and planned spending.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Monthly","processId":"cash-and-liquidity-management","lobId":"financial-administration","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/liquidity-forecast.md"},{"id":"k-1-tracking-and-collection","title":"K-1 Tracking and Collection","description":"Tracks expected K-1s by entity and follows up on late ones.","status":"in-production","executionMode":"automated","autonomy":"guided","trigger":"Weekly, February to September","staleAfter":"2027-02-15","processId":"tax-preparation-and-compliance","lobId":"tax-and-estate-planning","state":"Runs outside the framework","skills":[],"agents":[],"nodePath":"registry/workflows/k-1-tracking-and-collection.md"},{"id":"tax-document-organizer","title":"Tax Document Organizer","description":"Gathers each family member's tax documents into the CPA's organizer.","status":"under-development","executionMode":"augmented","autonomy":"deterministic","trigger":"Annually, in January","processId":"tax-preparation-and-compliance","lobId":"tax-and-estate-planning","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/tax-document-organizer.md"},{"id":"estimated-tax-payment-reminders","title":"Estimated Tax Payment Reminders","description":"Calculates and schedules reminders for each quarterly estimated tax payment.","status":"backlog","executionMode":"automated","autonomy":"deterministic","trigger":"Quarterly, before each due date","processId":"tax-preparation-and-compliance","lobId":"tax-and-estate-planning","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/estimated-tax-payment-reminders.md"},{"id":"entity-compliance-calendar","title":"Entity Compliance Calendar","description":"Tracks annual filings, registered agent renewals and trustee deadlines for every entity.","status":"in-production","executionMode":"automated","autonomy":"deterministic","trigger":"Monthly","staleAfter":"2026-11-01","processId":"estate-and-entity-administration","lobId":"tax-and-estate-planning","state":"Runs outside the framework","skills":[],"agents":[],"nodePath":"registry/workflows/entity-compliance-calendar.md"},{"id":"trust-document-summaries","title":"Trust Document Summaries","description":"Summarizes each trust's key terms, trustees and distribution provisions for staff reference.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"When a trust document is added or amended","processId":"estate-and-entity-administration","lobId":"tax-and-estate-planning","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/trust-document-summaries.md"},{"id":"estate-plan-review-preparation","title":"Estate Plan Review Preparation","description":"Prepares the briefing for each estate plan review with outside counsel.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Before each estate plan review","processId":"estate-and-entity-administration","lobId":"tax-and-estate-planning","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/estate-plan-review-preparation.md"},{"id":"family-request-intake","title":"Family Request Intake","description":"Logs requests from family members, routes each to the right staff member and tracks it to done.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"When a family member sends a request","processId":"family-requests-and-concierge","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/family-request-intake.md"},{"id":"travel-planning-briefs","title":"Travel Planning Briefs","description":"Researches and drafts a travel brief for each trip a family member requests.","status":"backlog","executionMode":"augmented","autonomy":"autonomous","trigger":"When a trip is requested","processId":"family-requests-and-concierge","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/travel-planning-briefs.md"},{"id":"event-planning","title":"Event Planning","description":"Plans family events from a request to a run-of-show.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"When a family event is requested","processId":"family-requests-and-concierge","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/event-planning.md"},{"id":"household-staff-payroll-review","title":"Household Staff Payroll Review","description":"Checks each household payroll run against hours, rates and approvals before it is paid.","status":"backlog","executionMode":"augmented","autonomy":"deterministic","trigger":"Each payroll cycle","processId":"household-and-staff-administration","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/household-staff-payroll-review.md"},{"id":"property-maintenance-scheduling","title":"Property Maintenance Scheduling","description":"Schedules recurring maintenance across the family's properties.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"Monthly","processId":"household-and-staff-administration","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/property-maintenance-scheduling.md"},{"id":"household-vendor-and-contract-tracking","title":"Household Vendor and Contract Tracking","description":"Tracks household vendors, contracts and renewal dates.","status":"backlog","executionMode":"augmented","autonomy":"deterministic","trigger":"When a household contract is signed or renewed","processId":"household-and-staff-administration","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/household-vendor-and-contract-tracking.md"},{"id":"insurance-policy-inventory","title":"Insurance Policy Inventory","description":"Keeps one inventory of every policy, coverage limit and renewal date across properties, vehicles, art and liability.","status":"under-development","executionMode":"augmented","autonomy":"deterministic","trigger":"When a policy is issued or renewed","processId":"insurance-and-risk-management","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/insurance-policy-inventory.md"},{"id":"insurance-renewal-preparation","title":"Insurance Renewal Preparation","description":"Prepares each renewal: changes since last year, coverage questions and broker comparisons.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"90 days before each renewal","processId":"insurance-and-risk-management","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/insurance-renewal-preparation.md"},{"id":"claims-tracking","title":"Claims Tracking","description":"Tracks each insurance claim from filing to settlement.","status":"backlog","executionMode":"augmented","autonomy":"deterministic","trigger":"When a claim is filed","processId":"insurance-and-risk-management","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/claims-tracking.md"},{"id":"payment-change-verification","title":"Payment Change Verification","description":"Holds every request to change payment instructions until it is verified by a call-back to a known number.","status":"in-production","executionMode":"augmented","autonomy":"deterministic","trigger":"When a request to change payment instructions arrives","staleAfter":"2027-02-15","processId":"cybersecurity-and-privacy","lobId":"family-services","state":"Runs outside the framework","skills":[],"agents":[],"nodePath":"registry/workflows/payment-change-verification.md"},{"id":"family-device-and-account-review","title":"Family Device and Account Review","description":"Reviews the security settings on family members' devices and key accounts.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Quarterly","processId":"cybersecurity-and-privacy","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/family-device-and-account-review.md"},{"id":"access-review","title":"Access Review","description":"Reviews who can see which accounts and documents, and flags access that should end.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Quarterly, and whenever staff change","processId":"cybersecurity-and-privacy","lobId":"family-services","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/access-review.md"},{"id":"family-meeting-briefing-packet","title":"Family Meeting Briefing Packet","description":"Prepares the briefing packet for each family meeting from the latest reports, decisions and open items.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"Three weeks before each family meeting","processId":"family-meetings-and-governance","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[".claude/skills/family-office-house-style/SKILL.md"],"agents":[],"nodePath":"registry/workflows/family-meeting-briefing-packet.md"},{"id":"meeting-minutes-and-action-tracking","title":"Meeting Minutes and Action Tracking","description":"Drafts minutes after each family or board meeting and tracks every action to done.","status":"in-production","executionMode":"augmented","autonomy":"deterministic","trigger":"After each family or board meeting","staleAfter":"2027-02-15","processId":"family-meetings-and-governance","lobId":"family-governance-and-philanthropy","state":"Runs outside the framework","skills":[".claude/skills/family-office-house-style/SKILL.md"],"agents":[],"nodePath":"registry/workflows/meeting-minutes-and-action-tracking.md"},{"id":"family-policy-updates","title":"Family Policy Updates","description":"Drafts proposed updates to the family constitution and policies for discussion.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"When the family asks for a policy change","processId":"family-meetings-and-governance","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/family-policy-updates.md"},{"id":"grant-request-screening","title":"Grant Request Screening","description":"Screens incoming grant requests against the foundation's giving guidelines and summarizes each for the committee.","status":"under-development","executionMode":"augmented","autonomy":"guided","trigger":"When a grant request arrives","processId":"philanthropy-and-grantmaking","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/grant-request-screening.md"},{"id":"grantee-impact-reports","title":"Grantee Impact Reports","description":"Summarizes grantees' annual reports into one view of the foundation's impact.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Annually","processId":"philanthropy-and-grantmaking","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/grantee-impact-reports.md"},{"id":"foundation-compliance-calendar","title":"Foundation Compliance Calendar","description":"Tracks the foundation's filings, payout requirements and deadlines.","status":"backlog","executionMode":"automated","autonomy":"deterministic","trigger":"Monthly","processId":"philanthropy-and-grantmaking","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/foundation-compliance-calendar.md"},{"id":"next-gen-learning-plans","title":"Next-Gen Learning Plans","description":"Drafts a yearly learning plan for each next-generation family member.","status":"backlog","executionMode":"augmented","autonomy":"guided","trigger":"Annually, for each family member","processId":"next-generation-education","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/next-gen-learning-plans.md"},{"id":"financial-literacy-briefings","title":"Financial Literacy Briefings","description":"Researches and drafts short briefings that explain the family's investments and structures.","status":"backlog","executionMode":"augmented","autonomy":"autonomous","trigger":"Monthly","processId":"next-generation-education","lobId":"family-governance-and-philanthropy","state":"Requirements needed","skills":[],"agents":[],"nodePath":"registry/workflows/financial-literacy-briefings.md"}],"notes":[],"skills":[{"id":"checking-commitments","title":"checking-commitments","description":"Checks a capital call against the family's commitment schedule for that fund, confirming the amount fits the unfunded commitment and the entity has the cash. Use after a capital call notice has been read and before a payment is prepared.","usedBy":["capital-call-processing"],"nodePath":".claude/skills/checking-commitments/SKILL.md"},{"id":"family-office-house-style","title":"family-office-house-style","description":"The Sample Family Office's house style for anything the family reads, such as reports, briefing packets, summaries and minutes. Use whenever drafting or reviewing a document for the family or its committees, so every document reads the same way whoever prepared it.","usedBy":["capital-call-processing","family-meeting-briefing-packet","investment-committee-packet","manager-letter-summaries","meeting-minutes-and-action-tracking","quarterly-family-investment-report"],"nodePath":".claude/skills/family-office-house-style/SKILL.md"},{"id":"reading-capital-call-notices","title":"reading-capital-call-notices","description":"Reads a private fund's capital call notice and extracts the fund, investing entity, amount, due date and wire instructions into a standard record. Use when a capital call notice arrives, before anything is checked or paid.","usedBy":["capital-call-processing"],"nodePath":".claude/skills/reading-capital-call-notices/SKILL.md"}],"agents":[{"id":"capital-call-preparer","title":"capital-call-preparer","description":"Prepares each capital call for the Controller's approval. Reads the notice, checks it against the commitment schedule and cash, and drafts the payment. Cannot release a payment.","usedBy":["capital-call-processing"],"nodePath":".claude/agents/capital-call-preparer.md"}]}</script>
+<script>
+(function () {
+  'use strict';
+
+  var raw = document.getElementById('data').textContent;
+  var data;
+  try { data = JSON.parse(raw) || {}; } catch (e) { data = {}; }
+
+  var business = data.business || null;
+  var lobs = Array.isArray(data.lobs) ? data.lobs : [];
+  var funcs = Array.isArray(data.functions) ? data.functions : [];
+  var processes = Array.isArray(data.processes) ? data.processes : [];
+  var workflows = Array.isArray(data.workflows) ? data.workflows : [];
+  var notes = Array.isArray(data.notes) ? data.notes : [];
+  var skills = Array.isArray(data.skills) ? data.skills : [];
+  var agents = Array.isArray(data.agents) ? data.agents : [];
+
+  var todayStr = new Date().toISOString().slice(0, 10);
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function byId(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  // A re-check is due on or after the re-check date (stale_after).
+  function isOverdue(wf) {
+    return !!(wf.staleAfter && wf.staleAfter <= todayStr && wf.status !== 'retired');
+  }
+
+  // Leader-facing labels: the level's name with its plain meaning, and whether
+  // the workflow runs with the leader or without them. Never a raw value.
+  function howItDecides(a) {
+    return { deterministic: 'Deterministic: follows your instructions', guided: 'Guided: makes bounded decisions with your method', autonomous: 'Autonomous: works toward a goal you set' }[a] || null;
+  }
+  function howItRuns(m) {
+    return { manual: 'Runs with you', augmented: 'Runs with you', automated: 'Runs without you' }[m] || null;
+  }
+
+  function statusLabel(s) {
+    return { 'in-production': 'In production', 'under-development': 'Under development', backlog: 'Backlog', retired: 'Retired' }[s] || (s || 'Unknown');
+  }
+
+  // Scheme allowlist -- defense in depth. The island is normally
+  // self-authored by compose-registry.js, but this template also renders
+  // shared/imported bundles, so treat every href as untrusted input: accept
+  // only http(s), mailto, and relative paths; reject javascript:/data:/
+  // vbscript: and anything else that could execute in the viewer's context.
+  function safeHref(href) {
+    if (!href) return '';
+    var s = String(href).trim();
+    var safe = /^(https?:|mailto:|\/|\.\/|\.\.\/|[^:]*$)/i;
+    return safe.test(s) ? s : '';
+  }
+
+  // `preferUrl`: use node.url (the node's external homepage, e.g. Business)
+  // ahead of nodeUrl/nodePath (the source-of-truth link back into the
+  // registry bundle itself).
+  // A bare nodePath is a relative link: it only resolves when the page is
+  // opened from the workspace folder (file://). Served anywhere else (a Claude
+  // Artifact, a cloud-drive preview) it would be a dead link, so it is dropped.
+  var openedFromFolder = typeof location !== 'undefined' && location.protocol === 'file:';
+  function linkFor(node, preferUrl) {
+    if (!node) return '';
+    var href = (preferUrl && node.url) || node.nodeUrl || (openedFromFolder ? node.nodePath : '');
+    return safeHref(href);
+  }
+
+  // ── status-distribution summary strip ──────────────────────────
+  function renderKpis() {
+    var counts = { 'in-production': 0, 'under-development': 0, backlog: 0, retired: 0 };
+    workflows.forEach(function (wf) { if (counts.hasOwnProperty(wf.status)) counts[wf.status]++; });
+    var order = ['in-production', 'under-development', 'backlog', 'retired'];
+    var html = '<div class="kpis">';
+    html += '<div class="kpi"><b>' + workflows.length + '</b><span>Total workflows</span></div>';
+    order.forEach(function (s) {
+      html += '<div class="kpi"><b><span class="dot ' + s + '"></span>' + counts[s] + '</b><span>' + esc(statusLabel(s)) + '</span></div>';
+    });
+    return html + '</div>';
+  }
+
+  // ── value-chain spine: Business → LOB → process group → workflow rows ──
+  function renderWorkflowRow(wf) {
+    var overdue = isOverdue(wf);
+    var badges = [];
+    if (wf.state) badges.push(wf.state);
+    if (howItRuns(wf.executionMode)) badges.push(howItRuns(wf.executionMode));
+    var badgeHtml = badges.map(function (b) { return '<span class="badge">' + esc(b) + '</span>'; }).join('');
+    return '<button class="wfr' + (overdue ? ' overdue' : '') + '" data-kind="workflow" data-id="' + esc(wf.id) + '">' +
+      '<span class="dot ' + esc(wf.status || 'none') + '"></span>' +
+      '<span class="wf-title">' + esc(wf.title || wf.id) + (overdue ? ' ⚠ re-check due' : '') + '</span>' +
+      badgeHtml +
+      '</button>';
+  }
+
+  function renderProcessRow(proc) {
+    var owner = proc.ownerId ? byId(funcs, proc.ownerId) : null;
+    // Value-chain order is the Process node's curated # Workflows list (proc.workflows).
+    // Workflows the curated list does not mention follow, by title.
+    var curated = Array.isArray(proc.workflows) ? proc.workflows : [];
+    var procWorkflows = workflows
+      .filter(function (wf) { return wf.processId === proc.id; })
+      .sort(function (a, b) {
+        var ia = curated.indexOf(a.id), ib = curated.indexOf(b.id);
+        if (ia !== -1 || ib !== -1) {
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        }
+        return (a.title || '').localeCompare(b.title || '');
+      });
+    var body = procWorkflows.length
+      ? '<div class="wfl">' + procWorkflows.map(renderWorkflowRow).join('') + '</div>'
+      : '<div class="none-yet">No workflows yet</div>';
+    return '<div class="prow">' +
+      '<button class="p-title" data-kind="process" data-id="' + esc(proc.id) + '">' + esc(proc.title || proc.id) + '</button>' +
+      (owner ? '<span class="p-owner">Owner: ' + esc(owner.title || owner.id) + '</span>' : '') +
+      body +
+      '</div>';
+  }
+
+  function processesForLob(lob) {
+    var byLobId = processes.filter(function (p) { return p.lobId === lob.id; });
+    var seen = {};
+    byLobId.forEach(function (p) { seen[p.id] = true; });
+    // Defensive: a LOB's declared `processes` id list might reference a
+    // process node not (yet) resolvable -- render a stub row rather than
+    // dropping it silently.
+    (Array.isArray(lob.processes) ? lob.processes : []).forEach(function (pid) {
+      if (!seen[pid]) {
+        byLobId.push({ id: pid, title: pid, ownerId: null });
+        seen[pid] = true;
+      }
+    });
+    return byLobId;
+  }
+
+  // `explicitProcs`, when given, is used verbatim instead of resolving via
+  // processesForLob(lob) -- the unassigned-processes pseudo-lane below passes
+  // the real Process nodes here so it never falls through processesForLob's
+  // id-only stub-fill path (that path is a deliberate defensive fallback for
+  // a real LOB's declared `processes` id list referencing an unresolvable
+  // process; reusing it for the unassigned lane rebuilt every row as
+  // `{id, title: id, ownerId: null}`, silently dropping the real title and
+  // owner).
+  function renderLane(lob, explicitProcs) {
+    var procs = explicitProcs || processesForLob(lob);
+    var rows = procs.length
+      ? procs.map(renderProcessRow).join('')
+      : '<div class="prow"><span class="none-yet">No processes yet</span></div>';
+    return '<section class="lane">' +
+      '<div class="lane-hd">' +
+        '<span class="lane-kicker">Line of Business</span>' +
+        '<h3><button data-kind="lob" data-id="' + esc(lob.id) + '" class="p-title">' + esc(lob.title || lob.id) + '</button></h3>' +
+        '<span class="lane-status">' + esc(statusLabel(lob.status)) + '</span>' +
+      '</div>' +
+      '<div class="spine">' + rows + '</div>' +
+      '</section>';
+  }
+
+  function unassignedProcesses() {
+    var lobIds = {};
+    lobs.forEach(function (l) { lobIds[l.id] = true; });
+    return processes.filter(function (p) { return !p.lobId || !lobIds[p.lobId]; });
+  }
+
+  // Workflows with no processId (SCHEMA.md: a legitimately-unassigned
+  // Workflow) are counted in the KPI strip's total but, before this fix, were
+  // never rendered anywhere -- they only ever appeared nested under a
+  // Process row (`workflows.filter(wf => wf.processId === proc.id)`), which
+  // by definition excludes them.
+  function unassignedWorkflows() {
+    return workflows.filter(function (wf) { return !wf.processId; });
+  }
+
+  function renderUnassignedWorkflowsLane() {
+    var wfs = unassignedWorkflows();
+    if (!wfs.length) return '';
+    return '<section class="lane">' +
+      '<div class="lane-hd">' +
+        '<span class="lane-kicker">Unassigned</span>' +
+        '<h3>Workflows without a process</h3>' +
+      '</div>' +
+      '<div class="spine"><div class="prow"><div class="wfl">' + wfs.map(renderWorkflowRow).join('') + '</div></div></div>' +
+      '</section>';
+  }
+
+  function renderBizBand() {
+    if (!business) return '';
+    var href = linkFor(business, true);
+    var titleHtml = href
+      ? '<a href="' + esc(href) + '">' + esc(business.title) + '</a>'
+      : esc(business.title);
+    return '<div class="biz-band">' +
+      '<div class="biz-kicker">Business</div>' +
+      '<h2>' + titleHtml + '</h2>' +
+      (business.description ? '<p>' + esc(business.description) + '</p>' : '') +
+      '<div class="status">' + esc(statusLabel(business.status)) + '</div>' +
+      '</div>';
+  }
+
+  function render() {
+    var root = document.getElementById('root');
+    if (!business && lobs.length === 0 && workflows.length === 0) {
+      root.innerHTML = '<div class="empty-state">No workflows yet — this registry bundle is empty. ' +
+        'Add a Business, a Line of Business, and a Workflow to see the value chain here.</div>';
+      return;
+    }
+
+    var html = renderBizBand() + renderKpis();
+
+    lobs.forEach(function (lob) { html += renderLane(lob); });
+
+    var extra = unassignedProcesses();
+    if (extra.length) {
+      html += renderLane({ id: '__unassigned__', title: 'Unassigned', status: null }, extra);
+    }
+
+    html += renderUnassignedWorkflowsLane();
+
+    root.innerHTML = html;
+  }
+
+  // ── drill-in panel ───────────────────────────────────────────────
+  var panel = document.getElementById('panel');
+  var scrim = document.getElementById('scrim');
+  var panelType = document.getElementById('panel-type');
+  var panelTitle = document.getElementById('panel-title');
+  var panelDesc = document.getElementById('panel-desc');
+  var panelMeta = document.getElementById('panel-meta');
+  var panelExtra = document.getElementById('panel-extra');
+
+  function metaItem(label, value, wide, overdue) {
+    if (value == null || value === '') return '';
+    return '<div class="m' + (wide ? ' wide' : '') + (overdue ? ' overdue' : '') + '"><i>' + esc(label) + '</i><b>' + esc(value) + '</b></div>';
+  }
+
+  function relatedList(label, items, kind) {
+    if (!items || !items.length) return '';
+    var lis = items.map(function (item) {
+      return '<li><button data-kind="' + esc(kind) + '" data-id="' + esc(item.id) + '">' + esc(item.title || item.id) + '</button></li>';
+    }).join('');
+    return '<div class="p-sec"><i>' + esc(label) + '</i><ul>' + lis + '</ul></div>';
+  }
+
+  function pathList(label, paths) {
+    if (!paths || !paths.length) return '';
+    var lis = paths.map(function (p) { return '<li><span class="mono">' + esc(p) + '</span></li>'; }).join('');
+    return '<div class="p-sec"><i>' + esc(label) + '</i><ul>' + lis + '</ul></div>';
+  }
+
+  // Insights: Notes whose `links` array names this node's bundle path.
+  // Note links are bundle-relative ("/workflows/second-workflow.md"); a
+  // node's nodePath is registry-relative ("registry/workflows/second-workflow.md")
+  // -- strip the "registry" prefix before comparing.
+  function bundlePath(node) {
+    return node && node.nodePath ? node.nodePath.replace(/^registry/, '') : null;
+  }
+
+  function insightsSection(node) {
+    var path = bundlePath(node);
+    if (!path) return '';
+    var matches = notes.filter(function (n) { return (n.links || []).indexOf(path) !== -1; });
+    if (!matches.length) return '';
+    var lis = matches.map(function (n) {
+      return '<li>' + esc(n.title || n.id) + (n.description ? ' — ' + esc(n.description) : '') + '</li>';
+    }).join('');
+    return '<div class="p-sec"><i>Insights</i><ul>' + lis + '</ul></div>';
+  }
+
+  function openWorkflow(wf) {
+    panelType.textContent = 'Workflow';
+    panelTitle.textContent = wf.title || wf.id;
+    panelDesc.textContent = wf.description || '';
+    var overdue = isOverdue(wf);
+    var proc = wf.processId ? byId(processes, wf.processId) : null;
+    var lob = wf.lobId ? byId(lobs, wf.lobId) : null;
+    panelMeta.innerHTML =
+      metaItem('Status', statusLabel(wf.status)) +
+      metaItem('Progress', wf.state) +
+      metaItem('How it decides', howItDecides(wf.autonomy), true) +
+      metaItem('How it runs', howItRuns(wf.executionMode)) +
+      metaItem('Trigger', wf.trigger) +
+      metaItem('Re-check by', wf.staleAfter, false, overdue);
+    var wfSkills = (wf.skills || []).map(function (p) { return byId(skills, idFromPath(p)) || { id: p, title: p }; });
+    var wfAgents = (wf.agents || []).map(function (p) { return byId(agents, idFromPath(p)) || { id: p, title: p }; });
+    panelExtra.innerHTML =
+      (proc || lob ? '<div class="p-sec"><i>Value chain</i><ul>' +
+        (proc ? '<li><button data-kind="process" data-id="' + esc(proc.id) + '">' + esc(proc.title || proc.id) + '</button></li>' : '') +
+        (lob ? '<li><button data-kind="lob" data-id="' + esc(lob.id) + '">' + esc(lob.title || lob.id) + '</button></li>' : '') +
+        '</ul></div>' : '') +
+      pathList('Skills', wf.skills) +
+      pathList('Agents', wf.agents) +
+      insightsSection(wf) +
+      linkSection(wf);
+    openPanel();
+  }
+
+  function idFromPath(p) {
+    // ".claude/skills/some-skill/SKILL.md" -> "some-skill"
+    var m = /\/([^/]+)\/SKILL\.md$/.exec(p || '');
+    if (m) return m[1];
+    return (p || '').replace(/\.md$/, '').split('/').pop();
+  }
+
+  // Students never edit registry files by hand, so this only says where the
+  // node lives: a link where one works, plain text where it would not.
+  function fileSection(node) {
+    if (!node || !node.nodePath) return '';
+    var href = linkFor(node);
+    var where = href
+      ? '<a href="' + esc(href) + '" class="mono">' + esc(node.nodePath) + '</a>'
+      : '<span class="mono">' + esc(node.nodePath) + '</span>';
+    return '<div class="p-sec"><i>File</i>' + where + '<p class="empty-note">To change this, ask your AI.</p></div>';
+  }
+  function linkSection(node) { return fileSection(node); }
+
+  function openProcess(proc) {
+    panelType.textContent = 'Process';
+    panelTitle.textContent = proc.title || proc.id;
+    panelDesc.textContent = proc.description || '';
+    var owner = proc.ownerId ? byId(funcs, proc.ownerId) : null;
+    var lob = proc.lobId ? byId(lobs, proc.lobId) : null;
+    panelMeta.innerHTML = metaItem('Owner', owner ? (owner.title || owner.id) : null) + metaItem('Line of Business', lob ? (lob.title || lob.id) : null);
+    var procWorkflows = workflows.filter(function (wf) { return wf.processId === proc.id; });
+    panelExtra.innerHTML = procWorkflows.length
+      ? relatedList('Workflows', procWorkflows, 'workflow')
+      : '<p class="empty-note">No workflows yet.</p>';
+    panelExtra.innerHTML += insightsSection(proc) + linkSection(proc);
+    openPanel();
+  }
+
+  function openLob(lob) {
+    panelType.textContent = 'Line of Business';
+    panelTitle.textContent = lob.title || lob.id;
+    panelDesc.textContent = lob.description || '';
+    panelMeta.innerHTML = metaItem('Status', statusLabel(lob.status));
+    var procs = processesForLob(lob);
+    panelExtra.innerHTML = procs.length
+      ? relatedList('Processes', procs, 'process')
+      : '<p class="empty-note">No processes yet.</p>';
+    panelExtra.innerHTML += linkSection(lob);
+    openPanel();
+  }
+
+  function openAsset(node, kind) {
+    panelType.textContent = kind === 'skill' ? 'Skill' : 'Agent';
+    panelTitle.textContent = node.title || node.id;
+    panelDesc.textContent = node.description || '';
+    panelMeta.innerHTML = '';
+    var usedBy = (node.usedBy || []).map(function (id) { return byId(workflows, id) || { id: id, title: id }; });
+    panelExtra.innerHTML =
+      (usedBy.length ? relatedList('Used by', usedBy, 'workflow') : '<p class="empty-note">Not used by any workflow yet.</p>') +
+      (node.quickStartPrompt ? '<div class="p-sec"><i>Quick start prompt</i><p>' + esc(node.quickStartPrompt) + '</p></div>' : '') +
+      fileSection(node);
+    openPanel();
+  }
+
+  function openPanel() {
+    panel.classList.add('open');
+    scrim.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePanel() {
+    panel.classList.remove('open');
+    scrim.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+
+  function openByKindId(kind, id) {
+    if (kind === 'workflow') { var wf = byId(workflows, id); if (wf) openWorkflow(wf); return; }
+    if (kind === 'process') { var proc = byId(processes, id); if (proc) openProcess(proc); return; }
+    if (kind === 'lob') { var lob = byId(lobs, id); if (lob) openLob(lob); return; }
+    if (kind === 'skill') { var sk = byId(skills, id); if (sk) openAsset(sk, 'skill'); return; }
+    if (kind === 'agent') { var ag = byId(agents, id); if (ag) openAsset(ag, 'agent'); return; }
+  }
+
+  document.getElementById('root').addEventListener('click', function (e) {
+    var el = e.target.closest('[data-kind][data-id]');
+    if (!el) return;
+    openByKindId(el.getAttribute('data-kind'), el.getAttribute('data-id'));
+  });
+  panelExtra.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-kind][data-id]');
+    if (!el) return;
+    openByKindId(el.getAttribute('data-kind'), el.getAttribute('data-id'));
+  });
+  document.getElementById('panel-close').addEventListener('click', closePanel);
+  scrim.addEventListener('click', closePanel);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
+
+  render();
+})();
+</script>
+</body>
+</html>

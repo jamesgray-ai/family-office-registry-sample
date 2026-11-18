@@ -1,0 +1,20 @@
+{
+  "skill_name": "checking-commitments",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Call of $250,000 against $1.2M unfunded; cash available.",
+      "expected_output": "Ready for approval."
+    },
+    {
+      "id": 2,
+      "prompt": "Call of $900,000 against $600,000 unfunded.",
+      "expected_output": "Stop: exceeds the unfunded commitment."
+    },
+    {
+      "id": 3,
+      "prompt": "Call within commitment, but entity cash is $100,000 short.",
+      "expected_output": "Ready with a note: cash shortfall of $100,000."
+    }
+  ]
+}

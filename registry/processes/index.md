@@ -1,0 +1,17 @@
+# Processes
+
+- [Accounting and Consolidated Reporting](/processes/accounting-and-consolidated-reporting.md)
+- [Bill Pay and Expense Management](/processes/bill-pay-and-expense-management.md)
+- [Capital Calls and Distributions](/processes/capital-calls-and-distributions.md)
+- [Cash and Liquidity Management](/processes/cash-and-liquidity-management.md)
+- [Cybersecurity and Privacy](/processes/cybersecurity-and-privacy.md)
+- [Estate and Entity Administration](/processes/estate-and-entity-administration.md)
+- [Family Meetings and Governance](/processes/family-meetings-and-governance.md)
+- [Family Requests and Concierge](/processes/family-requests-and-concierge.md)
+- [Household and Staff Administration](/processes/household-and-staff-administration.md)
+- [Insurance and Risk Management](/processes/insurance-and-risk-management.md)
+- [Investment Monitoring and Reporting](/processes/investment-monitoring-and-reporting.md)
+- [Manager Due Diligence](/processes/manager-due-diligence.md)
+- [Next-Generation Education](/processes/next-generation-education.md)
+- [Philanthropy and Grantmaking](/processes/philanthropy-and-grantmaking.md)
+- [Tax Preparation and Compliance](/processes/tax-preparation-and-compliance.md)

@@ -1,0 +1,20 @@
+{
+  "skill_name": "reading-capital-call-notices",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Standard notice: Fund III call #7, $250,000 due in 10 days, wire instructions match the file.",
+      "expected_output": "Complete record; instructions match: Yes."
+    },
+    {
+      "id": 2,
+      "prompt": "Notice with changed bank details compared with the file.",
+      "expected_output": "Record marked 'Instructions changed: verify by call-back'; stops."
+    },
+    {
+      "id": 3,
+      "prompt": "Notice naming an entity that is not in the entity register.",
+      "expected_output": "Stops and flags the entity mismatch."
+    }
+  ]
+}
