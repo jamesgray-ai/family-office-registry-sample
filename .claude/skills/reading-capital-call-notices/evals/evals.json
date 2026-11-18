@@ -20,6 +20,11 @@
       "id": 4,
       "prompt": "Fund II call #12 for $400,000, netted against a $150,000 distribution; wire instructions match the file.",
       "expected_output": "Gross call $400,000, distribution netted $150,000, net amount due $250,000; instructions match: Yes."
+    },
+    {
+      "id": 5,
+      "prompt": "Fund IV call #3 for $180,000, received Tuesday and due the following Monday; wire instructions match the file.",
+      "expected_output": "Complete record; 4 business days to pay, marked Short notice."
     }
   ]
 }
