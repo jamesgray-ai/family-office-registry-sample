@@ -11,9 +11,10 @@ A task skill: turn one capital call notice into one standard record.
 
 1. Identify the fund and the investing entity named on the notice. Match the entity to the office's entity register; if it doesn't match exactly, stop and flag it.
 2. Extract: call amount, due date, purpose of the call (investment, fees, expenses), and the call number.
-3. Extract the wire instructions exactly as written. Never correct, complete or reformat them.
-4. Compare the wire instructions with the instructions on file for this fund. If anything differs, mark the record **Instructions changed: verify by call-back** and stop.
-5. Output the record in the format below.
+3. If the notice nets a distribution against the call, record the gross call, the distribution and the net amount due separately. The net amount is what gets paid; the gross call is what counts against the commitment.
+4. Extract the wire instructions exactly as written. Never correct, complete or reformat them.
+5. Compare the wire instructions with the instructions on file for this fund. If anything differs, mark the record **Instructions changed: verify by call-back** and stop.
+6. Output the record in the format below.
 
 ## Output
 
@@ -22,7 +23,9 @@ A task skill: turn one capital call notice into one standard record.
 | Fund | |
 | Investing entity | |
 | Call number | |
-| Amount (USD) | |
+| Gross call (USD) | |
+| Distribution netted (USD) | 0 if none |
+| Net amount due (USD) | |
 | Due date | |
 | Purpose | |
 | Wire instructions match file | Yes / No |

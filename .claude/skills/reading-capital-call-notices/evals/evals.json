@@ -15,6 +15,11 @@
       "id": 3,
       "prompt": "Notice naming an entity that is not in the entity register.",
       "expected_output": "Stops and flags the entity mismatch."
+    },
+    {
+      "id": 4,
+      "prompt": "Fund II call #12 for $400,000, netted against a $150,000 distribution; wire instructions match the file.",
+      "expected_output": "Gross call $400,000, distribution netted $150,000, net amount due $250,000; instructions match: Yes."
     }
   ]
 }
