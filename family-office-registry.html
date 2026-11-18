@@ -144,7 +144,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .owner b { color: var(--ink); font-weight: 600; }
 .wf { border-top: 1px solid var(--line); }
 .wf:first-child { border-top: 0; }
-.wf-head { width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 13px 20px; display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.wf-head { width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 12px 20px; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.wf-head .dot { margin-top: 7px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wf-head:hover { background: var(--bg); }
 .status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--muted); padding-top: 2px; white-space: nowrap; }
 .wf-title { font-weight: 600; font-size: 14.5px; }
@@ -153,9 +155,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tag { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--chip); padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
 .tag.blocks { background: var(--brass-soft); color: var(--ink); }
 .tag.gov-tag { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
-.chev { transition: transform .2s; color: var(--muted); font-size: 12px; }
+.chev { transition: transform .2s; color: var(--muted); font-size: 16px; line-height: 1.4; padding-left: 8px; }
 .wf.open .chev { transform: rotate(90deg); }
-.wf-body { padding: 0 20px 18px calc(20px + 140px + 14px); display: grid; gap: 14px; }
+.wf-body { padding: 0 20px 18px calc(20px + 10px + 14px); display: grid; gap: 14px; }
 .wf-body p { margin: 0; max-width: 66ch; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 20px; border-top: 1px dashed var(--line); padding-top: 12px; margin: 0; }
 .fact dt { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--brass); margin: 0 0 2px; }
@@ -207,9 +209,6 @@ aside { display: grid; gap: 24px; }
   .mast .wrap { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 40px 32px; }
   .total-num { font-size: 64px; }
   .search { margin-left: 0; max-width: none; }
-  .wf-head { grid-template-columns: minmax(0, 1fr) auto; }
-  .wf-head .status { grid-column: 1 / -1; }
-  .wf-head .tags { display: none; }
   .wf-body { padding-left: 20px; }
   .feature-head, .feature-col { padding-left: 18px; padding-right: 18px; }
 }
@@ -410,19 +409,18 @@ aside { display: grid; gap: 24px; }
           <div class="proc-head"><h3>${esc(p.title)}</h3><span class="owner">Owned by <b>${esc(f.title)}</b> · ${esc(f.lead || '')}</span><p class="desc">${esc(p.description)}</p></div>
           ${p.workflows.map(wid => { const w = W[wid]; const st = ST[w.status];
             const nb = w.skills.length + w.agents.length;
-            const blocks = nb ? `<span class="tag blocks" data-names="${esc(w.skills.concat(w.agents).join(' '))}">${[w.skills.length ? plural(w.skills.length, 'skill') : '', w.agents.length ? plural(w.agents.length, 'agent') : ''].filter(Boolean).join(' · ')}</span>` : '';
-            const gov = w.gov ? `<span class="tag gov-tag">Governance ${w.gov.inPlace}/8</span>` : '';
-            const bl = nb ? `<div class="fact"><dt>Skills and agents</dt><dd>${w.skills.map(s => link(SK[s].url, s)).concat(w.agents.map(a => link(AG[a].url, a))).join(', ')}</dd></div>` : '';
+            const bl = nb ? `<div class="fact" style="grid-column:1/-1"><dt>Skills and agents</dt><dd>${w.skills.map(s => link(SK[s].url, s)).concat(w.agents.map(a => link(AG[a].url, a))).join(', ')}</dd></div>` : '';
             const gv = w.gov ? `<div class="fact"><dt>Governance</dt><dd>${w.gov.inPlace} of 8 in place · ${link(w.gov.url, 'record')}</dd></div>` : '';
             return `<div class="wf" data-wf="${w.id}">
               <button class="wf-head" type="button" aria-expanded="false" aria-controls="b-${w.id}">
-                <span class="status"><i class="dot ${st.cls}"></i>${st.label}</span>
-                <span><span class="wf-title">${esc(w.title)}</span><span class="wf-desc">${esc(w.description)}</span></span>
-                <span class="tags">${blocks}${gov}<span class="tag">${AUT[w.autonomy]}</span><span class="tag">${RUN(w.executionMode)}</span><span class="chev" aria-hidden="true">›</span></span>
+                <i class="dot ${st.cls}" title="${st.label}"></i>
+                <span><span class="wf-title">${esc(w.title)}</span><span class="sr"> (${st.label})</span><span class="wf-desc">${esc(w.description)}</span></span>
+                <span class="chev" aria-hidden="true">›</span>
               </button>
               <div class="wf-body" id="b-${w.id}" hidden>
                 <p>${esc(w.prose)}</p>
                 <dl class="facts">
+                  <div class="fact"><dt>Status</dt><dd><span class="status" style="padding:0;color:var(--ink)"><i class="dot ${st.cls}"></i>${st.label}</span></dd></div>
                   <div class="fact"><dt>Trigger</dt><dd>${esc(w.trigger)}</dd></div>
                   <div class="fact"><dt>How it decides</dt><dd>${AUT[w.autonomy]}: ${AUT_HINT[w.autonomy].toLowerCase()}</dd></div>
                   <div class="fact"><dt>Person in the loop</dt><dd>${RUN(w.executionMode)}</dd></div>
@@ -473,7 +471,6 @@ aside { display: grid; gap: 24px; }
     });
     document.getElementById('empty').classList.toggle('on', shown === 0);
     const using = document.getElementById('using');
-    lobsEl.querySelectorAll('.tag.blocks').forEach(t => t.classList.toggle('hit', !!state.block && t.dataset.names.split(' ').includes(state.block.split(':')[1])));
     if (state.block) {
       const [k, id] = state.block.split(':'); const item = k === 'skill' ? SK[id] : AG[id];
       const kind = k === 'skill' ? item.kind.toLowerCase() : 'agent';
