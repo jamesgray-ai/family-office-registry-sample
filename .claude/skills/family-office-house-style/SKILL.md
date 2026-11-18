@@ -11,6 +11,7 @@ A reference skill: the standards every family-facing document meets. Other skill
 
 - Plain English. Write for a family member who is smart and busy, not for an analyst.
 - Lead with what changed and what needs a decision, then the detail.
+- Explain an investment term the first time it appears in a document, in a few plain words: "TVPI (total value to paid-in: what each dollar invested is worth today)". After that, the short form is fine.
 - Name people by role ("the Controller"), never by first name, in anything that may be shared outside the office.
 
 ## Numbers
