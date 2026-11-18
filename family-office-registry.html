@@ -94,6 +94,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .feature-col .sub { color: var(--muted); font-size: 13px; margin: -6px 0 2px; }
 .sk { display: grid; gap: 2px; text-align: left; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
 .sk:hover { border-color: var(--brass); }
+.sk[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.sk[aria-pressed="true"] .sk-kind { color: var(--bg); opacity: .75; }
+.sk[aria-pressed="true"] .sk-used { color: var(--brass); }
+.sk[aria-pressed="true"] .sk-used::after { content: " · showing them"; }
+.using { display: none; margin-bottom: 22px; background: var(--brass-soft); border: 1px solid var(--brass); border-radius: 10px; padding: 16px 20px; gap: 6px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.using.on { display: flex; }
+.using p { margin: 0; flex: 1 1 360px; }
+.using b { font-family: var(--mono); font-weight: 500; font-size: 13.5px; }
+.using small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.using button { font: 600 13px var(--sans); color: var(--bg); background: var(--ink); border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.using button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.tag.blocks.hit { background: var(--ink); color: var(--bg); }
 .sk-name { font-family: var(--mono); font-size: 12.5px; font-weight: 500; overflow-wrap: anywhere; }
 .sk-kind { font-size: 12px; color: var(--muted); }
 .sk-used { font-size: 12px; color: var(--brass); font-weight: 600; }
@@ -233,7 +245,8 @@ aside { display: grid; gap: 24px; }
 <div class="wrap">
   <section class="feature" id="feature" aria-label="Featured workflow"></section>
   <div class="main">
-    <div>
+    <div id="list-top">
+      <div class="using" id="using" role="status"><p id="using-text"></p><button type="button" id="using-clear">Show all workflows</button></div>
       <div id="lobs"></div>
       <p class="empty" id="empty">No workflows match. Clear the filters to see all of them.</p>
     </div>
@@ -357,7 +370,7 @@ aside { display: grid; gap: 24px; }
   const sklist = document.getElementById('sklist');
   sklist.innerHTML = D.skills.slice().sort((a, b) => b.usedBy.length - a.usedBy.length).map(s => skillBtn(s.id)).join('') +
     D.agents.map(a => `<button class="sk" type="button" data-block="agent:${a.id}"><span class="sk-name">${esc(a.id)}</span><span class="sk-kind">Agent · uses ${plural(a.skills.length, 'skill')}</span><span class="sk-used">Used by ${plural(a.usedBy.length, 'workflow')}</span></button>`).join('');
-  document.addEventListener('click', e => { const b = e.target.closest('[data-block]'); if (!b) return; state.block = state.block === b.dataset.block ? null : b.dataset.block; render(); document.getElementById('lobs').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-block]'); if (!b) return; state.block = state.block === b.dataset.block ? null : b.dataset.block; render(); document.getElementById('list-top').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); });
 
   // Matrix
   const modes = [['augmented', 'With you'], ['automated', 'Without you']];
@@ -374,6 +387,7 @@ aside { display: grid; gap: 24px; }
   mx.innerHTML = mh;
   mx.addEventListener('click', e => { const b = e.target.closest('.cell'); if (!b || b.disabled) return; state.cell = state.cell === b.dataset.cell ? null : b.dataset.cell; render(); });
   document.getElementById('clear-extra').addEventListener('click', () => { state.cell = null; state.block = null; render(); });
+  document.getElementById('using-clear').addEventListener('click', () => { state.block = null; state.status = 'all'; state.cell = null; state.q = ''; q.value = ''; render(); });
 
   // Owners
   document.getElementById('owners').innerHTML = D.functions.map(f => {
@@ -396,7 +410,7 @@ aside { display: grid; gap: 24px; }
           <div class="proc-head"><h3>${esc(p.title)}</h3><span class="owner">Owned by <b>${esc(f.title)}</b> · ${esc(f.lead || '')}</span><p class="desc">${esc(p.description)}</p></div>
           ${p.workflows.map(wid => { const w = W[wid]; const st = ST[w.status];
             const nb = w.skills.length + w.agents.length;
-            const blocks = nb ? `<span class="tag blocks">${[w.skills.length ? plural(w.skills.length, 'skill') : '', w.agents.length ? plural(w.agents.length, 'agent') : ''].filter(Boolean).join(' · ')}</span>` : '';
+            const blocks = nb ? `<span class="tag blocks" data-names="${esc(w.skills.concat(w.agents).join(' '))}">${[w.skills.length ? plural(w.skills.length, 'skill') : '', w.agents.length ? plural(w.agents.length, 'agent') : ''].filter(Boolean).join(' · ')}</span>` : '';
             const gov = w.gov ? `<span class="tag gov-tag">Governance ${w.gov.inPlace}/8</span>` : '';
             const bl = nb ? `<div class="fact"><dt>Skills and agents</dt><dd>${w.skills.map(s => link(SK[s].url, s)).concat(w.agents.map(a => link(AG[a].url, a))).join(', ')}</dd></div>` : '';
             const gv = w.gov ? `<div class="fact"><dt>Governance</dt><dd>${w.gov.inPlace} of 8 in place · ${link(w.gov.url, 'record')}</dd></div>` : '';
@@ -458,6 +472,16 @@ aside { display: grid; gap: 24px; }
       sec.hidden = lobShown === 0; shown += lobShown;
     });
     document.getElementById('empty').classList.toggle('on', shown === 0);
+    const using = document.getElementById('using');
+    lobsEl.querySelectorAll('.tag.blocks').forEach(t => t.classList.toggle('hit', !!state.block && t.dataset.names.split(' ').includes(state.block.split(':')[1])));
+    if (state.block) {
+      const [k, id] = state.block.split(':'); const item = k === 'skill' ? SK[id] : AG[id];
+      const kind = k === 'skill' ? item.kind.toLowerCase() : 'agent';
+      const total = item.usedBy.length;
+      const reuse = total > 1 ? `Change this ${k} once, and all ${total} workflows get the update.` : `Only this workflow uses it today; any new workflow can reuse it.`;
+      document.getElementById('using-text').innerHTML = `Showing the ${plural(shown, 'workflow')} that use the <b>${esc(id)}</b> ${esc(kind)}.<small>${esc(reuse)}${shown < total ? ' Some are hidden by your other filters.' : ''}</small>`;
+      using.classList.add('on');
+    } else using.classList.remove('on');
   }
   render();
 })();
