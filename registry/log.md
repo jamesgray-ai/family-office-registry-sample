@@ -12,3 +12,4 @@ Setup decisions, schema changes, the dashboard's Claude Artifact link, and one l
 - 2026-11-14: Access Review added to the backlog after the operations team's security review.
 - 2026-11-18: reading-capital-call-notices changed three times through reviewed pull requests (#1 netted distributions, #2 short-notice flag, #3 verify wire changes only through contacts on file). Each change added a test case; the Controller approved all three.
 - 2026-11-18: family-office-house-style changed (#4: explain investment terms on first use). Used by 6 workflows; the CIO approved the change.
+- 2026-11-18: Live dashboard Artifact (reads skill change history from GitHub through the viewer's GitHub connector): https://claude.ai/artifact/WtJZLSHuddAqX6P5aHCeGA

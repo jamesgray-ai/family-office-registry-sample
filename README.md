@@ -14,7 +14,7 @@ It shows what a family office's AI Registry looks like a few months in: the reco
 | `sops/` | The written procedure for Capital Call Processing |
 | `governance-records/` | Governance records for three live workflows: where each stands on the eight governance practices |
 | `registry/log.md` | The registry's history: go-lives, skill updates and reviews |
-| `family-office-registry.html` | The presentation view of the registry (also published as a Claude Artifact) |
+| `family-office-registry.html` | The presentation view of the registry, published as two Claude Artifacts: a shareable copy that shows the saved change history, and a private copy that reads each skill's change history live from GitHub through the viewer's GitHub connector |
 | `registry-dashboard.html`, `REGISTRY.md` | The standard dashboard and summary the Hands-on AI plugin generates |
 | `skill-history.json` | Each skill's and agent's change history, pulled from GitHub by `tools/skill-history.py`: every pull request, why it was made, who made it and when |
 | `tools/` | The plugin's check and dashboard tools, plus `skill-history.py` |
